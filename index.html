@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>شركة وطني فوود للصناعات الغذائية المحدودة - نظام إدارة المصنع</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        * { font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .theme-orange { background-color: #E25822; }
+        .theme-orange-dark { background-color: #C04212; }
+        .theme-text-orange { color: #E25822; }
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <script>
+        const SUPABASE_URL = "https://mhwltpnbpogpacjeypma.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_MZCbjnn7WynBgD0BXB6H8w_cDbYYiI0";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    </script>
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-between p-6 theme-orange">
+        <div class="w-full flex flex-col items-center pt-8 text-center text-white">
+            <div class="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-3 shadow-lg border border-white/30 backdrop-blur-sm">
+                <i class="fa-solid fa-leaf text-4xl text-white"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold tracking-wide">وطني فوود</h1>
+            <p class="text-xs font-semibold opacity-90 tracking-wider">Watani Food Industries Company LTD</p>
+            <p class="text-xs opacity-75 mt-0.5">شركة وطني فوود للصناعات الغذائية المحدودة</p>
+        </div>
+
+        <div class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl text-right">
+            <h2 class="text-xl font-bold theme-text-orange mb-1">مرحباً بعودتك</h2>
+            <p class="text-xs text-gray-500 mb-5">سجل الدخول إلى نظام إدارة المصنع الشامل</p>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">البريد الإلكتروني / اسم المستخدم</label>
+                    <input type="text" id="loginEmail" required placeholder="admin@watanifood.com" 
+                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#E25822]">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" 
+                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#E25822]">
+                </div>
+                <button type="submit" class="w-full py-3 theme-orange hover:theme-orange-dark text-white font-bold rounded-xl shadow-md transition duration-200 text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>تسجيل الدخول</span>
+                </button>
+            </form>
+            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center text-emerald-600 text-[11px] gap-1 font-semibold">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>قاعدة بيانات Supabase السحابية متصلة وجاهزة</span>
+            </div>
+        </div>
+
+        <div class="w-full max-w-sm">
+            <button onclick="bypassLogin()" class="w-full py-3 rounded-2xl border border-white/50 bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 backdrop-blur-sm transition">
+                <i class="fa-regular fa-eye"></i>
+                <span>دخول تجريبي للنظام (وصول كامل للمصنع)</span>
+            </button>
+            <p class="text-[10px] text-center text-white/80 mt-2 font-medium">وصول مخصص حسب دورك وقسمك الصناعي</p>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="mainApp" class="hidden flex-1 flex flex-col">
+        <header class="theme-orange text-white shadow-md sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-extrabold leading-tight">مصنع وطني فوود</h2>
+                        <p class="text-[10px] opacity-80">لوحة التحكم الصناعية الشاملة</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="logout()" class="px-2.5 py-1.5 bg-black/20 hover:bg-black/30 rounded-lg text-xs font-semibold text-rose-200">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="bg-white border-b border-gray-200 shadow-sm sticky top-[57px] z-30">
+            <div class="max-w-7xl mx-auto px-2 flex overflow-x-auto gap-1 py-1.5 scrollbar-none text-xs font-bold">
+                <button onclick="showSection('departments')" id="tab-departments" class="px-3 py-2 rounded-lg whitespace-nowrap theme-orange text-white">
+                    <i class="fa-solid fa-cubes ml-1"></i> الأقسام
+                </button>
+                <button onclick="showSection('workorders')" id="tab-workorders" class="px-3 py-2 rounded-lg whitespace-nowrap text-gray-600 hover:bg-orange-50">
+                    <i class="fa-solid fa-clipboard-check ml-1"></i> أوامر الشغل
+                </button>
+                <button onclick="showSection('assets')" id="tab-assets" class="px-3 py-2 rounded-lg whitespace-nowrap text-gray-600 hover:bg-orange-50">
+                    <i class="fa-solid fa-gears ml-1"></i> سجل الأصول
+                </button>
+                <button onclick="showSection('generators')" id="tab-generators" class="px-3 py-2 rounded-lg whitespace-nowrap text-gray-600 hover:bg-orange-50">
+                    <i class="fa-solid fa-bolt ml-1"></i> لوج المولدات
+                </button>
+                <button onclick="showSection('spareparts')" id="tab-spareparts" class="px-3 py-2 rounded-lg whitespace-nowrap text-gray-600 hover:bg-orange-50">
+                    <i class="fa-solid fa-boxes-stacked ml-1"></i> قطع الغيار
+                </button>
+            </div>
+        </nav>
+
+        <main class="flex-1 max-w-7xl mx-auto w-full p-3 sm:p-5">
+            <!-- 1. DEPARTMENTS VIEW -->
+            <div id="view-departments" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800">أقسام المصنع وخطوط العمليات</h3>
+                        <p class="text-xs text-gray-500">نظام إدارة العمليات المرتبط بقاعدة بيانات Supabase</p>
+                    </div>
+                </div>
+                <div id="sectionsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+            </div>
+
+            <!-- 2. WORK ORDERS VIEW -->
+            <div id="view-workorders" class="hidden space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800">سجل بلاغات الأعطال وأوامر الشغل (WO)</h3>
+                        <p class="text-xs text-gray-500">متابعة الصيانة الطارئة والوقائية وإغلاق البلاغات لحظياً</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button onclick="exportTableToExcel('workOrdersTable', 'سجل_أوامر_شغل_وطني_فوود')" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                            <i class="fa-solid fa-file-excel ml-1"></i> تصدير إكسل
+                        </button>
+                        <button onclick="openNewWoModal()" class="flex-1 sm:flex-none px-3.5 py-2 theme-orange text-white rounded-xl text-xs font-bold">
+                            <i class="fa-solid fa-plus ml-1"></i> أمر شغل جديد
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="workOrdersTable" class="w-full text-right text-xs">
+                            <thead class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-3">رقم الأمر</th>
+                                    <th class="p-3">التاريخ</th>
+                                    <th class="p-3">المعدة</th>
+                                    <th class="p-3">النوع</th>
+                                    <th class="p-3">التأثير</th>
+                                    <th class="p-3">وصف العطل</th>
+                                    <th class="p-3">الفني</th>
+                                    <th class="p-3">الحالة</th>
+                                    <th class="p-3 text-center">طباعة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workOrdersBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. MASTER ASSETS VIEW -->
+            <div id="view-assets" class="hidden space-y-4">
+                <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-bold text-gray-800">سجل الأصول الصناعية وبيانات الاعتمادية</h3>
+                    <button onclick="exportTableToExcel('assetsTable', 'سجل_أصول_مصنع_وطني_فوود')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                        <i class="fa-solid fa-file-excel ml-1"></i> تصدير إكسل
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="assetsTable" class="w-full text-right text-xs">
+                            <thead class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-3">كود الأصل</th>
+                                    <th class="p-3">اسم الماكينة / المعدة</th>
+                                    <th class="p-3">القسم / خط الإنتاج</th>
+                                    <th class="p-3">الموديل</th>
+                                    <th class="p-3">الأهمية</th>
+                                    <th class="p-3">تكلفة التوقف/ساعة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetsBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. GENERATORS LOG VIEW -->
+            <div id="view-generators" class="hidden space-y-4">
+                <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-bold text-gray-800">سجل قراءات المولدات والمرافق اليومي</h3>
+                    <button onclick="exportTableToExcel('generatorsTable', 'لوج_المولدات_اليومي')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                        <i class="fa-solid fa-file-excel ml-1"></i> تصدير إكسل
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="generatorsTable" class="w-full text-right text-xs">
+                            <thead class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-3">التاريخ</th>
+                                    <th class="p-3">المولد</th>
+                                    <th class="p-3">ساعات التشغيل</th>
+                                    <th class="p-3">ضغط الزيت</th>
+                                    <th class="p-3">حرارة الماء</th>
+                                    <th class="p-3">الديزل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="generatorsBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. SPARE PARTS VIEW -->
+            <div id="view-spareparts" class="hidden space-y-4">
+                <div class="flex justify-between items-center bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-bold text-gray-800">كتالوج ومخزون قطع الغيار (BOM)</h3>
+                    <button onclick="exportTableToExcel('sparePartsTable', 'كتالوج_قطع_الغيار_وطني_فوود')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold">
+                        <i class="fa-solid fa-file-excel ml-1"></i> تصدير إكسل
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table id="sparePartsTable" class="w-full text-right text-xs">
+                            <thead class="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="p-3">كود القطعة</th>
+                                    <th class="p-3">اسم وتوصيف القطعة</th>
+                                    <th class="p-3">التصنيف</th>
+                                    <th class="p-3">الرصيد الحالي</th>
+                                    <th class="p-3">الحد الأدنى</th>
+                                    <th class="p-3">السعر ($)</th>
+                                    <th class="p-3">موقع التخزين</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sparePartsBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ADD NEW WORK ORDER -->
+    <div id="modalNewWo" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-white rounded-3xl w-full max-w-lg p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 class="font-bold text-base theme-text-orange flex items-center gap-2">
+                    <i class="fa-solid fa-wrench"></i> تسجيل أمر شغل / بلاغ عطل جديد
+                </h4>
+                <button onclick="closeModal('modalNewWo')" class="text-gray-400 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form onsubmit="saveNewWorkOrder(event)" class="space-y-3 mt-4 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">رقم أمر الشغل</label>
+                        <input type="text" id="wo_number" required class="w-full p-2.5 rounded-xl border border-gray-200">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">الوردية</label>
+                        <select id="wo_shift" class="w-full p-2.5 rounded-xl border border-gray-200">
+                            <option value="A">الوردية A</option>
+                            <option value="B">الوردية B</option>
+                            <option value="C">الوردية C</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">المعدة / الماكينة المستهدفة</label>
+                    <select id="wo_asset_code" required class="w-full p-2.5 rounded-xl border border-gray-200"></select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">نوع الصيانة</label>
+                        <select id="wo_type" class="w-full p-2.5 rounded-xl border border-gray-200">
+                            <option value="Breakdown (عطل مفاجئ)">Breakdown (عطل مفاجئ)</option>
+                            <option value="Preventive (وقائي)">Preventive (وقائي)</option>
+                            <option value="Corrective (تصحيحي)">Corrective (تصحيحي)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">تأثير على الإنتاج؟</label>
+                        <select id="wo_prod_effect" class="w-full p-2.5 rounded-xl border border-gray-200">
+                            <option value="YES (توقف الخط)">YES (توقف الخط)</option>
+                            <option value="NO (لم يتوقف الخط)">NO (لم يتوقف الخط)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">وصف العطل / البلاغ</label>
+                    <textarea id="wo_desc" rows="2" required placeholder="اكتب وصف العطل بدقة..." class="w-full p-2.5 rounded-xl border border-gray-200"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">الفني المسؤول</label>
+                        <input type="text" id="wo_technician" placeholder="اسم الفني..." required class="w-full p-2.5 rounded-xl border border-gray-200">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">حالة الأمر</label>
+                        <select id="wo_status" class="w-full p-2.5 rounded-xl border border-gray-200">
+                            <option value="In Progress">قيد العمل (In Progress)</option>
+                            <option value="Completed">مكتمل (Completed)</option>
+                            <option value="Pending Parts">بانتظار قطع (Pending Parts)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="submit" class="flex-1 py-2.5 theme-orange text-white rounded-xl font-bold">
+                        حفظ في قاعدة البيانات
+                    </button>
+                    <button type="button" onclick="closeModal('modalNewWo')" class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-bold">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRINT TEMPLATE -->
+    <div id="printArea" class="hidden p-8 bg-white text-black">
+        <div class="border-2 border-black p-5 rounded-lg space-y-4">
+            <div class="flex justify-between items-center border-b-2 border-black pb-3">
+                <div>
+                    <h2 class="text-xl font-black">شركة وطني فوود للصناعات الغذائية المحدودة</h2>
+                    <h3 class="text-sm font-bold text-gray-700">إدارة الصيانة والاعتمادية - نموذج أمر شغل صيانة (Work Order)</h3>
+                </div>
+                <div class="text-left font-mono text-sm">
+                    <p class="font-bold" id="prn_wo_num">WO-26-XXXX</p>
+                    <p class="text-xs" id="prn_wo_date">Date: 2026-XX-XX</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-xs font-semibold">
+                <div><strong>الماكينة / المعدة:</strong> <span id="prn_asset">CAT Generator</span></div>
+                <div><strong>كود الأصل:</strong> <span id="prn_code">MP-PG-GE-01</span></div>
+                <div><strong>نوع الصيانة:</strong> <span id="prn_type">Breakdown</span></div>
+                <div><strong>التأثير على الخط:</strong> <span id="prn_effect">YES</span></div>
+                <div><strong>الفني المسؤول:</strong> <span id="prn_tech">عادل الأكحلي</span></div>
+                <div><strong>حالة الأمر:</strong> <span id="prn_status">Completed</span></div>
+            </div>
+
+            <div class="border border-gray-300 p-3 rounded text-xs">
+                <strong>وصف العطل / البلاغ:</strong>
+                <p id="prn_desc" class="mt-1 font-normal text-gray-800">تفاصيل العطل المشخص...</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-6 pt-10 text-center text-xs font-bold">
+                <div>
+                    <p>توقيع الفني المنفذ</p>
+                    <p class="mt-8 border-t border-gray-400">............................</p>
+                </div>
+                <div>
+                    <p>مشرف الصيانة / المهندس</p>
+                    <p class="mt-8 border-t border-gray-400">............................</p>
+                </div>
+                <div>
+                    <p>اعتماد مدير الإدارة</p>
+                    <p class="mt-8 border-t border-gray-400">............................</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(e) { e.preventDefault(); bypassLogin(); }
+        function bypassLogin() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            initializeApp();
+        }
+        function logout() {
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        async function initializeApp() {
+            loadSections();
+            loadAssets();
+            loadWorkOrders();
+            loadSpareParts();
+            loadGeneratorLogs();
+            document.getElementById('wo_number').value = 'WO-26-' + Math.floor(1000 + Math.random() * 9000);
+        }
+
+        function showSection(sectionKey) {
+            const views = ['departments', 'workorders', 'assets', 'generators', 'spareparts'];
+            views.forEach(v => {
+                const el = document.getElementById('view-' + v);
+                const tab = document.getElementById('tab-' + v);
+                if (v === sectionKey) {
+                    el.classList.remove('hidden');
+                    tab.classList.add('theme-orange', 'text-white');
+                    tab.classList.remove('text-gray-600', 'hover:bg-orange-50');
+                } else {
+                    el.classList.add('hidden');
+                    tab.classList.remove('theme-orange', 'text-white');
+                    tab.classList.add('text-gray-600', 'hover:bg-orange-50');
+                }
+            });
+        }
+
+        async function loadSections() {
+            const { data } = await supabase.from('factory_sections').select('*').eq('is_active', true).order('display_order');
+            if (data) {
+                document.getElementById('sectionsGrid').innerHTML = data.map(sec => `
+                    <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-start justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-orange-50 theme-text-orange flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-${sec.icon || 'cubes'}"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-gray-400 font-mono">${sec.section_code || ''}</span>
+                        </div>
+                        <div class="mt-3">
+                            <h4 class="font-bold text-xs text-gray-800">${sec.section_name}</h4>
+                            <p class="text-[10px] text-gray-400 mt-0.5">عمليات المصنع والاعتمادية</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function loadAssets() {
+            const { data } = await supabase.from('plant_assets').select('*').order('asset_code');
+            if (data) {
+                document.getElementById('assetsBody').innerHTML = data.map(a => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-mono font-bold text-[#E25822]">${a.asset_code}</td>
+                        <td class="p-3 font-semibold text-gray-800">${a.machine_name}</td>
+                        <td class="p-3 text-gray-600">${a.factory_section}</td>
+                        <td class="p-3 text-gray-500">${a.manufacturer_model || '-'}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${a.criticality.includes('A') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${a.criticality}</span></td>
+                        <td class="p-3 font-mono text-gray-700">${a.downtime_cost_per_hr} $</td>
+                    </tr>
+                `).join('');
+                document.getElementById('wo_asset_code').innerHTML = data.map(a => `<option value="${a.asset_code}">${a.machine_name} (${a.asset_code})</option>`).join('');
+            }
+        }
+
+        async function loadWorkOrders() {
+            const { data } = await supabase.from('work_orders').select('*').order('created_at', { ascending: false });
+            if (data && data.length > 0) {
+                document.getElementById('workOrdersBody').innerHTML = data.map(wo => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-mono font-bold text-gray-800">${wo.wo_number}</td>
+                        <td class="p-3 font-mono text-gray-600">${wo.wo_date}</td>
+                        <td class="p-3 font-bold text-gray-700">${wo.asset_code || '-'}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-700">${wo.maintenance_type}</span></td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${wo.prod_affected.includes('YES') ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-600'}">${wo.prod_affected}</span></td>
+                        <td class="p-3 max-w-xs truncate text-gray-600">${wo.fault_description}</td>
+                        <td class="p-3 font-medium text-gray-800">${wo.assigned_technician || '-'}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${wo.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${wo.status}</span></td>
+                        <td class="p-3 text-center">
+                            <button onclick='printWorkOrder(${JSON.stringify(wo).replace(/'/g, "&apos;")})' class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('workOrdersBody').innerHTML = '<tr><td colspan="9" class="p-6 text-center text-gray-400">لا توجد أوامر شغل مسجلة حالياً.</td></tr>';
+            }
+        }
+
+        async function loadGeneratorLogs() {
+            const { data } = await supabase.from('generator_daily_logs').select('*').order('created_at', { ascending: false });
+            if (data && data.length > 0) {
+                document.getElementById('generatorsBody').innerHTML = data.map(l => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-mono">${l.log_date}</td>
+                        <td class="p-3 font-bold">${l.generator_id}</td>
+                        <td class="p-3 font-mono">${l.running_hours} HR</td>
+                        <td class="p-3 font-mono">${l.oil_pressure_bar || '-'}</td>
+                        <td class="p-3 font-mono">${l.coolant_temp_c || '-'}</td>
+                        <td class="p-3 font-mono">${l.fuel_level_percent || '-'}%</td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('generatorsBody').innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-400">لا توجد قراءات للمولدات اليوم.</td></tr>';
+            }
+        }
+
+        async function loadSpareParts() {
+            const { data } = await supabase.from('spare_parts').select('*').order('part_code');
+            if (data) {
+                document.getElementById('sparePartsBody').innerHTML = data.map(sp => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-mono font-bold text-[#E25822]">${sp.part_code}</td>
+                        <td class="p-3 font-semibold text-gray-800">${sp.part_name}</td>
+                        <td class="p-3 text-gray-600">${sp.category || '-'}</td>
+                        <td class="p-3 font-bold font-mono ${sp.current_stock <= sp.min_stock_level ? 'text-rose-600' : 'text-emerald-600'}">${sp.current_stock} ${sp.unit}</td>
+                        <td class="p-3 font-mono text-gray-500">${sp.min_stock_level}</td>
+                        <td class="p-3 font-mono">${sp.unit_cost_usd} $</td>
+                        <td class="p-3 text-gray-500">${sp.storage_location || '-'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function saveNewWorkOrder(e) {
+            e.preventDefault();
+            const woData = {
+                wo_number: document.getElementById('wo_number').value,
+                shift: document.getElementById('wo_shift').value,
+                asset_code: document.getElementById('wo_asset_code').value,
+                maintenance_type: document.getElementById('wo_type').value,
+                prod_affected: document.getElementById('wo_prod_effect').value,
+                fault_description: document.getElementById('wo_desc').value,
+                assigned_technician: document.getElementById('wo_technician').value,
+                status: document.getElementById('wo_status').value
+            };
+
+            const { error } = await supabase.from('work_orders').insert([woData]);
+            if (error) {
+                alert('خطأ: ' + error.message);
+            } else {
+                alert('تم حفظ أمر الشغل بنجاح في قاعدة البيانات!');
+                closeModal('modalNewWo');
+                loadWorkOrders();
+            }
+        }
+
+        function exportTableToExcel(tableId, filename) {
+            const table = document.getElementById(tableId);
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+            XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function printWorkOrder(wo) {
+            document.getElementById('prn_wo_num').innerText = wo.wo_number;
+            document.getElementById('prn_wo_date').innerText = 'Date: ' + (wo.wo_date || '');
+            document.getElementById('prn_code').innerText = wo.asset_code || '';
+            document.getElementById('prn_asset').innerText = wo.asset_code || '';
+            document.getElementById('prn_type').innerText = wo.maintenance_type || '';
+            document.getElementById('prn_effect').innerText = wo.prod_affected || '';
+            document.getElementById('prn_tech').innerText = wo.assigned_technician || '';
+            document.getElementById('prn_status').innerText = wo.status || '';
+            document.getElementById('prn_desc').innerText = wo.fault_description || '';
+
+            const printDiv = document.getElementById('printArea');
+            printDiv.classList.remove('hidden');
+            window.print();
+            printDiv.classList.add('hidden');
+        }
+
+        function openNewWoModal() {
+            document.getElementById('wo_number').value = 'WO-26-' + Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('modalNewWo').classList.remove('hidden');
+        }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    </script>
+</body>
+</html>
